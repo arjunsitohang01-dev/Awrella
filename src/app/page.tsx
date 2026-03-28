@@ -1655,7 +1655,11 @@ function HomePage({ siteContent }: SiteContentProps) {
                     alt={featuredPhoto.caption || 'Foto utama'}
                     loading="eager"
                     decoding="async"
-                    className="aspect-[4/5] w-full object-cover"
+                    className="h-auto w-full transition-transform duration-500 hover:scale-[1.02]"
+                    style={{
+                      contentVisibility: 'auto',
+                      containIntrinsicSize: '320px 420px',
+                    }}
                   />
                 </div>
                 <div className="px-2 pb-2 pt-4 text-sm text-[#6E6666]">
@@ -1675,13 +1679,13 @@ function HomePage({ siteContent }: SiteContentProps) {
               </div>
             )}
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="columns-1 gap-4 sm:columns-2 [column-gap:1rem]">
               {recentPhotos.length > 0 ? (
                 recentPhotos.map((photo) => (
                   <button
                     key={photo.id}
                     type="button"
-                    className="group overflow-hidden rounded-[1.8rem] border border-[#EADCCF] bg-[#FFFDF9] p-2.5 text-left shadow-sm transition-transform duration-300 hover:-translate-y-1"
+                    className="group mb-4 inline-block w-full break-inside-avoid overflow-hidden rounded-[1.8rem] border border-[#EADCCF] bg-[#FFFDF9] p-2.5 text-left shadow-sm transition-transform duration-300 hover:-translate-y-1"
                     onClick={() => setCurrentView('gallery')}
                   >
                     <div className="overflow-hidden rounded-[1.2rem]">
@@ -1690,14 +1694,18 @@ function HomePage({ siteContent }: SiteContentProps) {
                         alt={photo.caption || 'Foto'}
                         loading="lazy"
                         decoding="async"
-                        className="aspect-[4/5] w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                        className="h-auto w-full transition-transform duration-300 group-hover:scale-[1.03]"
+                        style={{
+                          contentVisibility: 'auto',
+                          containIntrinsicSize: '220px 300px',
+                        }}
                       />
                     </div>
                     <p className="px-1 pb-1 pt-4 text-sm text-[#6E6666]">{photo.caption || 'Momen kecil yang disimpan'}</p>
                   </button>
                 ))
               ) : (
-                <div className="rounded-[1.8rem] border border-dashed border-[#EADCCF] bg-[#FFFCF8] p-5 text-sm leading-7 text-[#6E6666] sm:col-span-2">
+                <div className="rounded-[1.8rem] border border-dashed border-[#EADCCF] bg-[#FFFCF8] p-5 text-sm leading-7 text-[#6E6666]">
                   {photosReady
                     ? 'Belum ada susunan foto tambahan. Saat album mulai terisi, preview kecil akan muncul di sini.'
                     : 'Preview foto tambahan sedang disiapkan.'}
@@ -2109,35 +2117,40 @@ function GalleryPage({ siteContent }: SiteContentProps) {
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-[#8B7676]">Arsip visual</p>
                 <h2 className={`${cormorant.className} mt-3 text-4xl text-[#2F2A2A]`}>
-                  Foto saja, tersusun padat, tetap ringan.
+                  Potret dan landscape, tetap tersusun rapi.
                 </h2>
               </div>
-              <Badge className="w-fit bg-[#E8BFCB] text-[#2F2A2A]">batch {galleryBatchSize} foto</Badge>
+              <div className="flex flex-wrap gap-2">
+                <Badge className="w-fit bg-[#E8BFCB] text-[#2F2A2A]">batch {galleryBatchSize} foto</Badge>
+                <Badge className="w-fit bg-[#DCEAF6] text-[#2F2A2A]">potret + landscape</Badge>
+              </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-              {archivePhotos.map((photo, index) => (
-                <div
-                  key={photo.id}
-                  className={`${index < 12 ? 'gallery-card-reveal' : ''} group overflow-hidden rounded-[1.55rem] border border-[#EADCCF] bg-[#FFFDF9] p-2.5 shadow-sm transition-transform duration-300 hover:-translate-y-1`}
-                  style={{
-                    animationDelay: index < 12 ? `${index * 40}ms` : undefined,
-                    contentVisibility: 'auto',
-                    containIntrinsicSize: '270px 360px',
-                  }}
-                >
-                  <div className="overflow-hidden rounded-[1.2rem] bg-[#F0E5D8]">
-                    <img
-                      src={photo.imageUrl}
-                      alt={photo.caption || 'Foto'}
-                      loading={index < 4 ? 'eager' : 'lazy'}
-                      decoding="async"
-                      className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                    />
+            {archivePhotos.length > 0 && (
+              <div className="mt-6 columns-2 [column-gap:0.75rem] sm:columns-3 sm:[column-gap:1rem] xl:columns-4">
+                {archivePhotos.map((photo, index) => (
+                  <div
+                    key={photo.id}
+                    className={`${index < 12 ? 'gallery-card-reveal' : ''} group mb-3 inline-block w-full break-inside-avoid overflow-hidden rounded-[1.55rem] border border-[#EADCCF] bg-[#FFFDF9] p-2.5 shadow-sm transition-transform duration-300 hover:-translate-y-1 sm:mb-4`}
+                    style={{
+                      animationDelay: index < 12 ? `${index * 40}ms` : undefined,
+                      contentVisibility: 'auto',
+                      containIntrinsicSize: '270px 360px',
+                    }}
+                  >
+                    <div className="overflow-hidden rounded-[1.2rem] bg-[#F0E5D8]">
+                      <img
+                        src={photo.imageUrl}
+                        alt={photo.caption || 'Foto'}
+                        loading={index < 4 ? 'eager' : 'lazy'}
+                        decoding="async"
+                        className="h-auto w-full transition-transform duration-500 group-hover:scale-[1.03]"
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             {galleryError && archivePhotos.length === 0 && (
               <div className="mt-6 rounded-[1.8rem] border border-dashed border-[#EADCCF] bg-[#FFFCF8] p-6 text-sm leading-7 text-[#6E6666]">

@@ -7,6 +7,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
@@ -19,17 +28,20 @@ import type { UserRole } from '@/lib/user-roles'
 import {
   ArrowUpDown,
   Camera,
-  ExternalLink,
-  FileText,
-  GripVertical,
+    ChevronDown,
+    ChevronUp,
+    ExternalLink,
+    FileText,
+    GripVertical,
   LayoutDashboard,
   LogOut,
   MessageCircle,
-  Music,
-  Shield,
-  UploadCloud,
-  UserCog,
-  Users,
+    Music,
+    Shield,
+    Trash2,
+    UploadCloud,
+    UserCog,
+    Users,
 } from 'lucide-react'
 
 type DashboardUser = {
@@ -127,6 +139,7 @@ const noteColors = {
 }
 
 const portraitRecommendedSize = '1200 x 1600 px, potret vertikal'
+const galleryRecommendedSize = 'Potret 1200 x 1500 px atau landscape 1600 x 1200 px'
 
 const contentEditorPages: ContentEditorPage[] = [
   {
@@ -882,6 +895,7 @@ export default function AdminDashboard() {
   const [draggedPhotoId, setDraggedPhotoId] = useState<string | null>(null)
   const [dragOverPhotoId, setDragOverPhotoId] = useState<string | null>(null)
   const [photoOrderDirty, setPhotoOrderDirty] = useState(false)
+  const [expandedPhotoId, setExpandedPhotoId] = useState<string | null>(null)
 
   useEffect(() => {
     setProfileForm({
@@ -1243,6 +1257,10 @@ export default function AdminDashboard() {
   }
 
   const handlePhotoDelete = async (photoId: string) => {
+    if (!window.confirm('Hapus foto ini dari galeri? File gambar dan data di database akan ikut dihapus.')) {
+      return
+    }
+
     setActionLoading(`photo-delete-${photoId}`)
     setDashboardError('')
 
@@ -1250,6 +1268,9 @@ export default function AdminDashboard() {
       await requestJson(`/api/photos/${photoId}`, {
         method: 'DELETE',
       })
+      if (expandedPhotoId === photoId) {
+        setExpandedPhotoId(null)
+      }
       await refreshPhotos()
       await refreshAuditLogs()
     } catch (error) {
@@ -1702,39 +1723,53 @@ export default function AdminDashboard() {
                 {contentForm.admin_dashboard_description}
               </p>
             </div>
-            <div className="flex flex-col items-stretch gap-3 sm:items-end">
-              <Button
-                asChild
-                variant="outline"
-                className="h-11 rounded-full border-[#EADCCF] bg-[#FFFDF9] px-5 text-[#2F2A2A] hover:bg-[#FFF7F8]"
-              >
-                <a href="/" target="_blank" rel="noreferrer">
-                  <ExternalLink className="h-4 w-4" />
-                  Lihat Website
-                </a>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => void handleAdminLogout()}
-                disabled={actionLoading === 'admin-logout'}
-                className="h-11 rounded-full border-[#F4D9DE] bg-[#FFFDF9] px-5 text-[#2F2A2A] hover:bg-[#FDF1F4]"
-              >
-                <LogOut className="h-4 w-4" />
-                {actionLoading === 'admin-logout' ? 'Keluar...' : 'Keluar'}
-              </Button>
-              <div className="flex items-center gap-3 rounded-2xl border border-[#EADCCF] bg-[#FFFDF9] px-4 py-3">
-                <Avatar className="h-11 w-11">
-                  <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name || user?.email} />
-                  <AvatarFallback className="bg-[#E8BFCB]/30 text-[#2F2A2A]">
-                    {user?.name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium text-[#2F2A2A]">{user?.name || user?.email}</p>
-                  <p className="text-sm text-[#6E6666]">{formatRoleLabel(user?.role)}</p>
-                </div>
-              </div>
+            <div className="flex justify-start md:justify-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex w-full min-w-[18rem] items-center gap-3 rounded-2xl border border-[#EADCCF] bg-[#FFFDF9] px-4 py-3 text-left shadow-sm transition hover:bg-[#FFF7F8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8BFCB] md:w-auto"
+                    aria-label="Buka menu admin"
+                  >
+                    <Avatar className="h-11 w-11">
+                      <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name || user?.email} />
+                      <AvatarFallback className="bg-[#E8BFCB]/30 text-[#2F2A2A]">
+                        {user?.name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-[#2F2A2A]">{user?.name || user?.email}</p>
+                      <p className="text-sm text-[#6E6666]">{formatRoleLabel(user?.role)}</p>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-[#6E6666]" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-[17rem] rounded-2xl border-[#EADCCF] bg-[#FFFDF9] p-2 text-[#2F2A2A] shadow-[0_22px_60px_-36px_rgba(47,42,42,0.4)]"
+                >
+                  <DropdownMenuLabel className="px-3 py-2">
+                    <p className="font-medium text-[#2F2A2A]">{user?.name || user?.email}</p>
+                    <p className="text-xs font-normal text-[#6E6666]">{formatRoleLabel(user?.role)}</p>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-[#EADCCF]" />
+                  <DropdownMenuItem
+                    className="rounded-xl px-3 py-2.5 text-[#2F2A2A] focus:bg-[#FFF7F8] focus:text-[#2F2A2A]"
+                    onClick={() => window.open('/', '_blank', 'noopener,noreferrer')}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Lihat Website
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="rounded-xl px-3 py-2.5 text-[#A05366] focus:bg-[#FDF1F4] focus:text-[#A05366]"
+                    onClick={() => void handleAdminLogout()}
+                    disabled={actionLoading === 'admin-logout'}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    {actionLoading === 'admin-logout' ? 'Keluar...' : 'Keluar'}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -1839,7 +1874,7 @@ export default function AdminDashboard() {
                         id="new-photo-file"
                         label="File Foto"
                         hint="Klik atau drop file JPG, PNG, WEBP, atau GIF sampai 5MB."
-                        recommendedSize="1200 x 1500 px atau lebih besar, rasio potret 4:5"
+                        recommendedSize={galleryRecommendedSize}
                         file={newPhotoFile}
                         progress={newPhotoUploadProgress}
                         isUploading={actionLoading === 'create-photo' && !!newPhotoFile}
@@ -1913,113 +1948,214 @@ export default function AdminDashboard() {
                 </Alert>
               )}
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {photos.map((photo) => (
-                  <Card
-                    key={photo.id}
-                    draggable
-                    onDragStart={() => handlePhotoDragStart(photo.id)}
-                    onDragEnd={() => {
-                      setDraggedPhotoId(null)
-                      setDragOverPhotoId(null)
-                    }}
-                    onDragOver={(event) => {
-                      event.preventDefault()
-                      setDragOverPhotoId(photo.id)
-                    }}
-                    onDrop={() => handlePhotoDrop(photo.id)}
-                    className={`bg-[#FFFDF9] border-[#EADCCF] shadow-sm transition ${
-                      draggedPhotoId === photo.id
-                        ? 'opacity-70 ring-2 ring-[#E8BFCB]'
-                        : dragOverPhotoId === photo.id
-                          ? 'ring-2 ring-[#EADCCF]'
-                          : ''
-                    }`}
-                  >
-                    <CardContent className="p-4 space-y-4">
-                      <div className="flex items-center justify-between rounded-xl bg-[#F7F4EF] px-3 py-2 text-sm text-[#6E6666]">
-                        <div className="flex items-center gap-2">
-                          <GripVertical className="h-4 w-4 text-[#2F2A2A]" />
-                          <span>Geser untuk mengurutkan</span>
-                        </div>
-                        <span>Urutan #{photo.order + 1}</span>
-                      </div>
-                      <div className="aspect-[4/5] overflow-hidden rounded-xl bg-[#EADCCF]">
-                        <img src={photo.imageUrl} alt={photo.caption || 'Foto'} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>URL Gambar</Label>
-                        <Input
-                          value={photo.imageUrl}
-                          onChange={(e) => handlePhotoFieldChange(photo.id, 'imageUrl', e.target.value)}
-                        />
-                      </div>
-                      <UploadDropzone
-                        id={`photo-file-${photo.id}`}
-                        label="Ganti File"
-                        hint="Drop file baru kalau ingin mengganti gambar tanpa mengubah caption."
-                        recommendedSize="1200 x 1500 px atau lebih besar, rasio potret 4:5"
-                        file={photoFiles[photo.id] || null}
-                        progress={photoUploadProgress[photo.id] || 0}
-                        isUploading={actionLoading === `photo-${photo.id}` && !!photoFiles[photo.id]}
-                        dragActive={photoDragActive[photo.id] || false}
-                        onDragActiveChange={(active) =>
-                          setPhotoDragActive((current) => ({
-                            ...current,
-                            [photo.id]: active,
-                          }))
-                        }
-                        onFileSelect={(file) =>
-                          setPhotoFiles((current) => ({
-                            ...current,
-                            [photo.id]: file,
-                          }))
-                        }
-                      />
-                      <div className="space-y-2">
-                        <Label>Caption</Label>
-                        <Input
-                          value={photo.caption || ''}
-                          onChange={(e) => handlePhotoFieldChange(photo.id, 'caption', e.target.value)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between gap-4">
-                        <label className="flex items-center gap-2 text-sm text-[#2F2A2A]">
-                          <input
-                            type="checkbox"
-                            checked={photo.featured}
-                            onChange={(e) => handlePhotoFieldChange(photo.id, 'featured', e.target.checked)}
-                          />
-                          Unggulan
-                        </label>
-                        <Input
-                          type="number"
-                          value={photo.order}
-                          onChange={(e) => handlePhotoFieldChange(photo.id, 'order', Number(e.target.value))}
-                          className="w-24"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          className="flex-1 bg-[#E8BFCB] hover:bg-[#E8BFCB]/90 text-[#2F2A2A]"
-                          onClick={() => void handlePhotoSave(photo)}
-                          disabled={actionLoading === `photo-${photo.id}`}
-                        >
-                          Simpan
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="flex-1 border-[#F4D9DE] text-red-600 hover:bg-[#F4D9DE]/30"
-                          onClick={() => void handlePhotoDelete(photo.id)}
-                          disabled={actionLoading === `photo-delete-${photo.id}`}
-                        >
-                          Hapus
-                        </Button>
-                      </div>
+              <div className="space-y-3">
+                {photos.length === 0 && (
+                  <Card className="border-dashed border-[#EADCCF] bg-[#FFFDF9] shadow-sm">
+                    <CardContent className="p-6 text-sm leading-7 text-[#6E6666]">
+                      Belum ada foto di dashboard. Tambahkan foto pertama untuk mulai menyusun galeri.
                     </CardContent>
                   </Card>
-                ))}
+                )}
+
+                {photos.map((photo) => {
+                  const isExpanded = expandedPhotoId === photo.id
+                  const hasReplacementFile = Boolean(photoFiles[photo.id])
+
+                  return (
+                    <Collapsible
+                      key={photo.id}
+                      open={isExpanded}
+                      onOpenChange={(open) => setExpandedPhotoId(open ? photo.id : null)}
+                    >
+                      <Card
+                        draggable
+                        onDragStart={() => handlePhotoDragStart(photo.id)}
+                        onDragEnd={() => {
+                          setDraggedPhotoId(null)
+                          setDragOverPhotoId(null)
+                        }}
+                        onDragOver={(event) => {
+                          event.preventDefault()
+                          setDragOverPhotoId(photo.id)
+                        }}
+                        onDrop={() => handlePhotoDrop(photo.id)}
+                        className={`border-[#EADCCF] bg-[#FFFDF9] shadow-sm transition ${
+                          draggedPhotoId === photo.id
+                            ? 'opacity-70 ring-2 ring-[#E8BFCB]'
+                            : dragOverPhotoId === photo.id
+                              ? 'ring-2 ring-[#EADCCF]'
+                              : ''
+                        }`}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+                            <div className="flex min-w-0 flex-1 items-center gap-4">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F7F4EF] text-[#2F2A2A]">
+                                <GripVertical className="h-4 w-4" />
+                              </div>
+                              <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[1.1rem] bg-[#EADCCF] sm:h-24 sm:w-24">
+                                <img
+                                  src={photo.imageUrl}
+                                  alt={photo.caption || 'Foto'}
+                                  className="h-full w-full object-cover"
+                                  loading="lazy"
+                                  decoding="async"
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-base font-medium text-[#2F2A2A]">
+                                  {photo.caption || `Foto #${photo.order + 1}`}
+                                </p>
+                                <p className="mt-1 truncate text-sm text-[#6E6666]">{photo.imageUrl}</p>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  <Badge className="bg-[#F7F4EF] text-[#2F2A2A]">Urutan #{photo.order + 1}</Badge>
+                                  {photo.featured && (
+                                    <Badge className="bg-[#E8BFCB] text-[#2F2A2A]">Unggulan</Badge>
+                                  )}
+                                  {hasReplacementFile && (
+                                    <Badge className="bg-[#DCEAF6] text-[#2F2A2A]">File baru siap</Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:shrink-0">
+                              <div className="rounded-xl bg-[#F7F4EF] px-3 py-2 text-xs uppercase tracking-[0.16em] text-[#8B7676]">
+                                Geser untuk ubah urutan
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="rounded-full border-[#F4D9DE] bg-[#FFFDF9] px-5 text-red-600 hover:bg-[#FDF1F4]"
+                                onClick={() => void handlePhotoDelete(photo.id)}
+                                disabled={actionLoading === `photo-delete-${photo.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                {actionLoading === `photo-delete-${photo.id}` ? 'Menghapus...' : 'Hapus'}
+                              </Button>
+                              <CollapsibleTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="rounded-full border-[#EADCCF] bg-[#FFFDF9] px-5 text-[#2F2A2A] hover:bg-[#FFF7F8]"
+                                >
+                                  {isExpanded ? (
+                                    <>
+                                      <ChevronUp className="h-4 w-4" />
+                                      Tutup detail
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ChevronDown className="h-4 w-4" />
+                                      Buka detail
+                                    </>
+                                  )}
+                                </Button>
+                              </CollapsibleTrigger>
+                            </div>
+                          </div>
+
+                          <CollapsibleContent className="pt-4">
+                            <div className="grid gap-4 border-t border-[#EADCCF] pt-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+                              <div className="space-y-4">
+                                <div className="grid gap-4 md:grid-cols-2">
+                                  <div className="space-y-2 md:col-span-2">
+                                    <Label>URL Gambar</Label>
+                                    <Input
+                                      value={photo.imageUrl}
+                                      onChange={(e) => handlePhotoFieldChange(photo.id, 'imageUrl', e.target.value)}
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label>Caption</Label>
+                                    <Input
+                                      value={photo.caption || ''}
+                                      onChange={(e) => handlePhotoFieldChange(photo.id, 'caption', e.target.value)}
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label>Urutan</Label>
+                                    <Input
+                                      type="number"
+                                      value={photo.order}
+                                      onChange={(e) => handlePhotoFieldChange(photo.id, 'order', Number(e.target.value))}
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-[#EADCCF] bg-[#F7F4EF] px-4 py-3">
+                                  <label className="flex items-center gap-3 text-sm text-[#2F2A2A]">
+                                    <input
+                                      type="checkbox"
+                                      checked={photo.featured}
+                                      onChange={(e) => handlePhotoFieldChange(photo.id, 'featured', e.target.checked)}
+                                    />
+                                    Jadikan foto unggulan
+                                  </label>
+                                </div>
+
+                                <div className="flex flex-col gap-2 sm:flex-row">
+                                  <Button
+                                    className="bg-[#E8BFCB] text-[#2F2A2A] hover:bg-[#E8BFCB]/90"
+                                    onClick={() => void handlePhotoSave(photo)}
+                                    disabled={actionLoading === `photo-${photo.id}`}
+                                  >
+                                    Simpan Perubahan
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="border-[#F4D9DE] text-red-600 hover:bg-[#F4D9DE]/30"
+                                    onClick={() => void handlePhotoDelete(photo.id)}
+                                    disabled={actionLoading === `photo-delete-${photo.id}`}
+                                  >
+                                    Hapus Foto
+                                  </Button>
+                                </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                <div className="overflow-hidden rounded-[1.4rem] border border-[#EADCCF] bg-[#FFFDF9] p-3">
+                                  <div className="overflow-hidden rounded-[1rem] bg-[#EADCCF]">
+                                    <img
+                                      src={photo.imageUrl}
+                                      alt={photo.caption || 'Foto'}
+                                      className="h-auto w-full"
+                                      loading="lazy"
+                                      decoding="async"
+                                    />
+                                  </div>
+                                </div>
+                                <UploadDropzone
+                                  id={`photo-file-${photo.id}`}
+                                  label="Ganti File"
+                                  hint="Drop file baru kalau ingin mengganti gambar tanpa mengubah caption."
+                                  recommendedSize={galleryRecommendedSize}
+                                  file={photoFiles[photo.id] || null}
+                                  progress={photoUploadProgress[photo.id] || 0}
+                                  isUploading={actionLoading === `photo-${photo.id}` && !!photoFiles[photo.id]}
+                                  dragActive={photoDragActive[photo.id] || false}
+                                  onDragActiveChange={(active) =>
+                                    setPhotoDragActive((current) => ({
+                                      ...current,
+                                      [photo.id]: active,
+                                    }))
+                                  }
+                                  onFileSelect={(file) =>
+                                    setPhotoFiles((current) => ({
+                                      ...current,
+                                      [photo.id]: file,
+                                    }))
+                                  }
+                                />
+                              </div>
+                            </div>
+                          </CollapsibleContent>
+                        </CardContent>
+                      </Card>
+                    </Collapsible>
+                  )
+                })}
               </div>
             </TabsContent>
 
