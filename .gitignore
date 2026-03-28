@@ -45,6 +45,9 @@ local-*
 dev.log
 test
 prompt
+.zscripts/*.log
+.zscripts/*.pid
+db/*.db
 
 server.log
 # Skills directory
