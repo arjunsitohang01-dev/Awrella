@@ -20,6 +20,7 @@ type UserRow = {
   id: string
   email: string
   name: string | null
+  avatar_url: string | null
 }
 
 // GET all visible comments
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
     if (userIds.length > 0) {
       const { data: users, error: usersError } = await supabase
         .from('users')
-        .select('id, name, email')
+        .select('id, name, email, avatar_url')
         .in('id', userIds)
 
       if (usersError) {
@@ -82,6 +83,7 @@ export async function GET(request: NextRequest) {
         hidden: comment.hidden,
         userId: comment.user_id,
         userName: user?.name || user?.email.split('@')[0] || 'Anonim',
+        avatarUrl: user?.avatar_url ?? null,
         createdAt: formatTimeAgo(comment.created_at),
       }
     })
@@ -159,7 +161,7 @@ export async function POST(request: NextRequest) {
 
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, name, email')
+      .select('id, name, email, avatar_url')
       .eq('id', comment.user_id)
       .maybeSingle()
 
@@ -176,6 +178,7 @@ export async function POST(request: NextRequest) {
                 id: user.id,
                 name: user.name,
                 email: user.email,
+                avatarUrl: user.avatar_url ?? null,
               }
             : null,
         },

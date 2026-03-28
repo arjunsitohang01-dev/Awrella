@@ -20,10 +20,17 @@ import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 // Color classes for mini notes
 const noteColors = {
-  CREAM: 'bg-[#F6EFCF]',
-  BLUE: 'bg-[#DCEAF6]',
-  BLUSH: 'bg-[#F4D9DE]',
-  SAGE: 'bg-[#E2EEDB]',
+  CREAM: 'bg-[linear-gradient(180deg,#FFF8D8_0%,#FFF1BF_100%)]',
+  BLUE: 'bg-[linear-gradient(180deg,#F2F8FF_0%,#DCEAF6_100%)]',
+  BLUSH: 'bg-[linear-gradient(180deg,#FEF0F3_0%,#F4D9DE_100%)]',
+  SAGE: 'bg-[linear-gradient(180deg,#F2F8EE_0%,#E2EEDB_100%)]',
+}
+
+const noteAccentColors = {
+  CREAM: 'bg-[#DFC15C]',
+  BLUE: 'bg-[#88A7C2]',
+  BLUSH: 'bg-[#D89AAC]',
+  SAGE: 'bg-[#96B489]',
 }
 
 type CommentItem = {
@@ -31,6 +38,7 @@ type CommentItem = {
   content: string
   noteColor: keyof typeof noteColors
   userName: string
+  avatarUrl?: string | null
   createdAt: string
 }
 
@@ -59,6 +67,75 @@ const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
 })
+
+function getUserInitials(name: string) {
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+
+  if (parts.length === 0) {
+    return 'AW'
+  }
+
+  return parts.map((part) => part.charAt(0).toUpperCase()).join('')
+}
+
+function MessageNoteCard({
+  item,
+  index,
+}: {
+  item: CommentItem
+  index: number
+}) {
+  const accentClass = noteAccentColors[item.noteColor] ?? noteAccentColors.CREAM
+  const noteClass = noteColors[item.noteColor] ?? noteColors.CREAM
+  const tiltClass =
+    index % 4 === 1
+      ? 'sm:rotate-[1deg]'
+      : index % 4 === 3
+        ? 'sm:-rotate-[1.1deg]'
+        : ''
+
+  return (
+    <article
+      className={`message-note-rise relative mb-4 inline-block w-full break-inside-avoid overflow-hidden rounded-[1.7rem] border border-white/80 p-4 shadow-[0_18px_40px_-34px_rgba(47,42,42,0.42)] transition-transform duration-300 hover:-translate-y-1 ${noteClass} ${tiltClass}`}
+      style={{ animationDelay: `${index * 70}ms` }}
+    >
+      <div className="absolute inset-x-6 top-0 h-12 rounded-b-full bg-white/40 blur-2xl" />
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar className="h-10 w-10 border border-white/80 shadow-sm">
+            <AvatarImage src={item.avatarUrl || undefined} alt={item.userName} />
+            <AvatarFallback className="bg-white/70 text-xs font-semibold uppercase tracking-[0.14em] text-[#2F2A2A]">
+              {getUserInitials(item.userName)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-[#8B7676]">catatan kecil</p>
+            <p className="mt-1 truncate text-[13px] font-medium uppercase tracking-[0.16em] text-[#2F2A2A]">
+              {item.userName}
+            </p>
+          </div>
+        </div>
+        <span className="shrink-0 rounded-full border border-white/80 bg-white/70 px-2.5 py-1 text-[10px] text-[#6E6666] backdrop-blur-sm">
+          {item.createdAt}
+        </span>
+      </div>
+      <div className="relative mt-3 flex items-start gap-3">
+        <span className={`${cormorant.className} text-[2.2rem] leading-none text-[#2F2A2A]/18`} aria-hidden="true">
+          "
+        </span>
+        <p className="pt-1 text-[14px] leading-6 text-[#2F2A2A]">{item.content}</p>
+      </div>
+      <div className="relative mt-4 flex items-center justify-between gap-3">
+        <span className="text-[10px] uppercase tracking-[0.2em] text-[#8B7676]">tersimpan</span>
+        <span className={`h-2.5 w-2.5 rounded-full ${accentClass}`} />
+      </div>
+    </article>
+  )
+}
 
 const landingFeatureCardMeta = [
   { icon: PhotoGlyph, tone: 'bg-[#FFF7F8]' },
@@ -1715,7 +1792,7 @@ function HomePage({ siteContent }: SiteContentProps) {
           </div>
         </section>
 
-        <section className="mx-auto mt-8 grid max-w-6xl gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="mx-auto mt-8 grid max-w-6xl items-start gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-[2.3rem] border border-[#EADCCF] bg-[#FFFDF9]/92 p-7 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -1769,22 +1846,21 @@ function HomePage({ siteContent }: SiteContentProps) {
             </form>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-4 lg:pt-2">
+            <div className="flex items-center justify-between gap-3 px-1">
+              <p className="text-xs uppercase tracking-[0.22em] text-[#8B7676]">catatan yang baru masuk</p>
+              <span className="rounded-full border border-[#EADCCF] bg-[#FFF7F8] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#7E5E66]">
+                {comments.length} tampil
+              </span>
+            </div>
             {comments.length > 0 ? (
-              comments.map((item, index) => (
-                <div
-                  key={item.id}
-                  className={`${noteColors[item.noteColor]} ${index % 3 === 1 ? 'sm:translate-y-6' : ''} rounded-[1.8rem] p-5 shadow-sm transition-transform duration-300 hover:-translate-y-1`}
-                >
-                  <p className="text-sm leading-7 text-[#2F2A2A]">{item.content}</p>
-                  <div className="mt-5 flex items-center justify-between gap-3">
-                    <span className="text-xs font-medium uppercase tracking-[0.16em] text-[#6E6666]">{item.userName}</span>
-                    <span className="text-xs text-[#6E6666]/75">{item.createdAt}</span>
-                  </div>
-                </div>
-              ))
+              <div className="columns-1 [column-gap:1rem] sm:columns-2">
+                {comments.map((item, index) => (
+                  <MessageNoteCard key={item.id} item={item} index={index} />
+                ))}
+              </div>
             ) : (
-              <div className="rounded-[1.8rem] border border-dashed border-[#EADCCF] bg-[#FFFCF8] p-5 text-sm leading-7 text-[#6E6666] sm:col-span-2">
+              <div className="rounded-[2rem] border border-dashed border-[#EADCCF] bg-[#FFFCF8] p-6 text-sm leading-7 text-[#6E6666]">
                 {loadError
                   ? loadError
                   : commentsReady
@@ -1864,7 +1940,15 @@ function MessagePage({ siteContent }: SiteContentProps) {
                       "{featuredMessage.content}"
                     </p>
                     <div className="mt-5 flex items-center justify-between gap-3 text-xs uppercase tracking-[0.16em] text-[#6E6666]">
-                      <span>{featuredMessage.userName}</span>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <Avatar className="h-10 w-10 border border-[#EADCCF]">
+                          <AvatarImage src={featuredMessage.avatarUrl || undefined} alt={featuredMessage.userName} />
+                          <AvatarFallback className="bg-[#FFF7F8] text-[11px] font-semibold uppercase tracking-[0.14em] text-[#2F2A2A]">
+                            {getUserInitials(featuredMessage.userName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="truncate">{featuredMessage.userName}</span>
+                      </div>
                       <span>{featuredMessage.createdAt}</span>
                     </div>
                   </>
@@ -1950,23 +2034,13 @@ function MessagePage({ siteContent }: SiteContentProps) {
                 <Badge className="w-fit bg-[#E8BFCB] text-[#2F2A2A]">ringan dan terbaru dulu</Badge>
               </div>
 
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div className="mt-6">
                 {archiveMessages.length > 0 ? (
-                  archiveMessages.map((item, index) => (
-                    <div
-                      key={item.id}
-                      className={`message-note-rise ${noteColors[item.noteColor]} ${
-                        index % 4 === 1 ? 'sm:translate-y-8' : index % 4 === 3 ? 'sm:-translate-y-4' : ''
-                      } rounded-[1.9rem] p-5 shadow-sm transition-transform duration-500 hover:-translate-y-1.5`}
-                      style={{ animationDelay: `${index * 70}ms` }}
-                    >
-                      <p className="text-sm leading-7 text-[#2F2A2A]">{item.content}</p>
-                      <div className="mt-5 flex items-center justify-between gap-3">
-                        <span className="text-xs font-medium uppercase tracking-[0.16em] text-[#6E6666]">{item.userName}</span>
-                        <span className="text-xs text-[#6E6666]/75">{item.createdAt}</span>
-                      </div>
-                    </div>
-                  ))
+                  <div className="columns-1 [column-gap:1rem] sm:columns-2">
+                    {archiveMessages.map((item, index) => (
+                      <MessageNoteCard key={item.id} item={item} index={index} />
+                    ))}
+                  </div>
                 ) : loadError ? (
                   <div className="rounded-[1.9rem] border border-dashed border-[#EADCCF] bg-[#FFFCF8] p-6 text-sm leading-7 text-[#6E6666] sm:col-span-2">
                     {loadError}

@@ -12,9 +12,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 
-const CROP_SIZE = 320
+const MAX_CROP_SIZE = 320
 const OUTPUT_SIZE = 512
-const PREVIEW_SIZE = 128
+const DEFAULT_PREVIEW_SIZE = 128
 
 type Offset = {
   x: number
@@ -46,6 +46,8 @@ export default function AvatarCropDialog({
   onComplete,
 }: AvatarCropDialogProps) {
   const imageRef = useRef<HTMLImageElement | null>(null)
+  const cropFrameRef = useRef<HTMLDivElement | null>(null)
+  const previewFrameRef = useRef<HTMLDivElement | null>(null)
   const dragStateRef = useRef<{
     pointerId: number
     startX: number
@@ -57,6 +59,8 @@ export default function AvatarCropDialog({
   const [zoom, setZoom] = useState(1)
   const [offset, setOffset] = useState<Offset>({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
+  const [cropSize, setCropSize] = useState(MAX_CROP_SIZE)
+  const [previewSize, setPreviewSize] = useState(DEFAULT_PREVIEW_SIZE)
 
   useEffect(() => {
     if (!open || !imageSrc) {
@@ -75,6 +79,48 @@ export default function AvatarCropDialog({
     probe.src = imageSrc
   }, [imageSrc, open])
 
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    const updateSizes = () => {
+      const nextCropSize = cropFrameRef.current?.getBoundingClientRect().width ?? MAX_CROP_SIZE
+      const nextPreviewSize =
+        previewFrameRef.current?.getBoundingClientRect().width ?? DEFAULT_PREVIEW_SIZE
+
+      setCropSize(
+        nextCropSize > 0 ? Math.min(MAX_CROP_SIZE, Math.round(nextCropSize)) : MAX_CROP_SIZE,
+      )
+      setPreviewSize(
+        nextPreviewSize > 0
+          ? Math.min(DEFAULT_PREVIEW_SIZE, Math.round(nextPreviewSize))
+          : DEFAULT_PREVIEW_SIZE,
+      )
+    }
+
+    updateSizes()
+
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateSizes) : null
+
+    if (resizeObserver) {
+      if (cropFrameRef.current) {
+        resizeObserver.observe(cropFrameRef.current)
+      }
+      if (previewFrameRef.current) {
+        resizeObserver.observe(previewFrameRef.current)
+      }
+    } else {
+      window.addEventListener('resize', updateSizes)
+    }
+
+    return () => {
+      resizeObserver?.disconnect()
+      window.removeEventListener('resize', updateSizes)
+    }
+  }, [open])
+
   const metrics = useMemo(() => {
     if (!imageSize.width || !imageSize.height) {
       return {
@@ -86,7 +132,7 @@ export default function AvatarCropDialog({
       }
     }
 
-    const baseScale = Math.max(CROP_SIZE / imageSize.width, CROP_SIZE / imageSize.height)
+    const baseScale = Math.max(cropSize / imageSize.width, cropSize / imageSize.height)
     const scale = baseScale * zoom
     const width = imageSize.width * scale
     const height = imageSize.height * scale
@@ -95,10 +141,10 @@ export default function AvatarCropDialog({
       scale,
       width,
       height,
-      boundsX: Math.max(0, (width - CROP_SIZE) / 2),
-      boundsY: Math.max(0, (height - CROP_SIZE) / 2),
+      boundsX: Math.max(0, (width - cropSize) / 2),
+      boundsY: Math.max(0, (height - cropSize) / 2),
     }
-  }, [imageSize.height, imageSize.width, zoom])
+  }, [cropSize, imageSize.height, imageSize.width, zoom])
 
   const clampedOffset = useMemo(
     () => ({
@@ -154,11 +200,11 @@ export default function AvatarCropDialog({
       return
     }
 
-    const left = CROP_SIZE / 2 - metrics.width / 2 + clampedOffset.x
-    const top = CROP_SIZE / 2 - metrics.height / 2 + clampedOffset.y
+    const left = cropSize / 2 - metrics.width / 2 + clampedOffset.x
+    const top = cropSize / 2 - metrics.height / 2 + clampedOffset.y
     const sourceX = -left / metrics.scale
     const sourceY = -top / metrics.scale
-    const sourceSize = CROP_SIZE / metrics.scale
+    const sourceSize = cropSize / metrics.scale
 
     const canvas = document.createElement('canvas')
     canvas.width = OUTPUT_SIZE
@@ -196,14 +242,16 @@ export default function AvatarCropDialog({
     )
   }
 
-  const left = CROP_SIZE / 2 - metrics.width / 2 + clampedOffset.x
-  const top = CROP_SIZE / 2 - metrics.height / 2 + clampedOffset.y
+  const left = cropSize / 2 - metrics.width / 2 + clampedOffset.x
+  const top = cropSize / 2 - metrics.height / 2 + clampedOffset.y
+  const previewScale = previewSize / cropSize
+  const cropInset = Math.max(14, Math.round(cropSize * 0.056))
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-2xl rounded-[2rem] border-[#EADCCF] bg-[#FFFDF9] p-0 shadow-[0_34px_90px_-45px_rgba(47,42,42,0.48)]"
+        className="max-h-[calc(100vh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-2xl overflow-hidden rounded-[2rem] border-[#EADCCF] bg-[#FFFDF9] p-0 shadow-[0_34px_90px_-45px_rgba(47,42,42,0.48)]"
       >
         <DialogHeader className="border-b border-[#EADCCF] bg-[#FFF7F8] px-6 py-5 text-left">
           <DialogTitle className="text-2xl text-[#2F2A2A]">Atur foto profil</DialogTitle>
@@ -212,13 +260,14 @@ export default function AvatarCropDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 px-6 py-6">
+        <div className="space-y-5 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
           <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
             <div className="space-y-3">
               <p className="text-xs uppercase tracking-[0.22em] text-[#8B7676]">Area crop</p>
               <div
+                ref={cropFrameRef}
                 role="presentation"
-                className={`relative mx-auto h-[320px] w-[320px] overflow-hidden rounded-[2rem] border border-[#EADCCF] bg-[#F7F4EF] ${
+                className={`relative mx-auto aspect-square w-full max-w-[320px] overflow-hidden rounded-[2rem] border border-[#EADCCF] bg-[#F7F4EF] touch-none ${
                   isDragging ? 'cursor-grabbing' : 'cursor-grab'
                 }`}
                 onPointerDown={handlePointerDown}
@@ -242,7 +291,13 @@ export default function AvatarCropDialog({
                   />
                 )}
                 <div className="pointer-events-none absolute inset-0 rounded-[2rem] ring-1 ring-inset ring-white/80" />
-                <div className="pointer-events-none absolute inset-[18px] rounded-[1.6rem] border border-white/90 shadow-[0_0_0_9999px_rgba(47,42,42,0.12)]" />
+                <div
+                  className="pointer-events-none absolute border border-white/90 shadow-[0_0_0_9999px_rgba(47,42,42,0.12)]"
+                  style={{
+                    inset: `${cropInset}px`,
+                    borderRadius: `${Math.max(24, Math.round(cropSize * 0.09))}px`,
+                  }}
+                />
               </div>
             </div>
 
@@ -250,7 +305,10 @@ export default function AvatarCropDialog({
               <div className="space-y-3 rounded-[1.8rem] border border-[#EADCCF] bg-[#FFFCF8] p-5">
                 <p className="text-xs uppercase tracking-[0.22em] text-[#8B7676]">Pratinjau profil</p>
                 <div className="flex justify-center">
-                  <div className="relative h-32 w-32 overflow-hidden rounded-full border border-[#EADCCF] bg-[#F7F4EF]">
+                  <div
+                    ref={previewFrameRef}
+                    className="relative aspect-square w-24 overflow-hidden rounded-full border border-[#EADCCF] bg-[#F7F4EF] sm:w-32"
+                  >
                     {imageSrc && (
                       <img
                         src={imageSrc}
@@ -258,10 +316,10 @@ export default function AvatarCropDialog({
                         draggable={false}
                         className="pointer-events-none absolute select-none"
                         style={{
-                          width: `${metrics.width * (PREVIEW_SIZE / CROP_SIZE)}px`,
-                          height: `${metrics.height * (PREVIEW_SIZE / CROP_SIZE)}px`,
-                          left: `${left * (PREVIEW_SIZE / CROP_SIZE)}px`,
-                          top: `${top * (PREVIEW_SIZE / CROP_SIZE)}px`,
+                          width: `${metrics.width * previewScale}px`,
+                          height: `${metrics.height * previewScale}px`,
+                          left: `${left * previewScale}px`,
+                          top: `${top * previewScale}px`,
                         }}
                       />
                     )}
