@@ -1,0 +1,87 @@
+// Awrella - Private Personal Space Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  SUPER_ADMIN
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NoteColor {
+  CREAM
+  BLUE
+  BLUSH
+  SAGE
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      UserRole @default(USER)
+  isActive  Boolean  @default(true)
+  approvalStatus ApprovalStatus @default(APPROVED)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  photos   Photo[]
+  comments Comment[]
+}
+
+model Photo {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  caption   String?
+  order     Int      @default(0)
+  featured  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Music {
+  id        String   @id @default(cuid())
+  title     String
+  spotifyUrl String
+  type      String   // 'track' or 'playlist'
+  featured  Boolean  @default(false)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  content   String
+  noteColor NoteColor @default(CREAM)
+  hidden    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Content {
+  id        String   @id @default(cuid())
+  key       String   @unique // 'landingTitle', 'landingSubtitle', 'aboutText', etc.
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
